@@ -11,6 +11,7 @@ import {
   PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen,
   FolderTree, Rocket, X, FileText, Terminal as TerminalIcon,
 } from "lucide-react";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 
 const cloneFiles = (files: FileNode[]): FileNode[] =>
   JSON.parse(JSON.stringify(files));
@@ -333,30 +334,15 @@ const Index = () => {
 
       {/* Main area */}
       <div className="flex-1 flex overflow-hidden relative">
-        {/* Desktop sidebar toggle + explorer */}
-        <div className="hidden md:flex">
-          <div className="flex flex-col bg-sidebar border-r border-border">
-            <button
-              onClick={() => setShowExplorer(!showExplorer)}
-              className="p-2 text-muted-foreground hover:text-foreground transition-colors"
-              title="Toggle Explorer"
-            >
-              {showExplorer ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
-            </button>
-          </div>
-          {showExplorer && (
-            <div className="w-56 border-r border-border">
-              <FileExplorer
-                files={files}
-                onFileSelect={handleFileSelect}
-                activeFilePath={activeTabPath}
-                onCreateFile={handleCreateFile}
-                onCreateFolder={handleCreateFolder}
-                onDeleteNode={handleDeleteNode}
-                onRenameNode={handleRenameNode}
-              />
-            </div>
-          )}
+        {/* Left Toggle Bar */}
+        <div className="hidden md:flex flex-col bg-sidebar border-r border-border shrink-0 z-10">
+          <button
+            onClick={() => setShowExplorer(!showExplorer)}
+            className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+            title="Toggle Explorer"
+          >
+            {showExplorer ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
+          </button>
         </div>
 
         {/* Mobile overlay panels */}
@@ -365,7 +351,7 @@ const Index = () => {
             <div className="w-64 bg-sidebar border-r border-border h-full">
               <div className="flex items-center justify-between px-3 py-2 border-b border-border">
                 <span className="text-xs font-semibold text-muted-foreground uppercase">Explorer</span>
-                <button onClick={() => setMobilePanel("none")} className="text-muted-foreground hover:text-foreground">
+                <button title="Close Explorer" onClick={() => setMobilePanel("none")} className="text-muted-foreground hover:text-foreground">
                   <X className="h-4 w-4" />
                 </button>
               </div>
@@ -388,7 +374,7 @@ const Index = () => {
             <div className="w-72 bg-card border-l border-border h-full">
               <div className="flex items-center justify-between px-3 py-2 border-b border-border">
                 <span className="text-xs font-semibold text-muted-foreground uppercase">Interact</span>
-                <button onClick={() => setMobilePanel("none")} className="text-muted-foreground hover:text-foreground">
+                <button title="Close Interact" onClick={() => setMobilePanel("none")} className="text-muted-foreground hover:text-foreground">
                   <X className="h-4 w-4" />
                 </button>
               </div>
@@ -397,39 +383,86 @@ const Index = () => {
           </div>
         )}
 
-        {/* Editor area */}
-        <div className="flex-1 flex flex-col min-w-0">
-          <EditorTabs
-            tabs={tabsWithStatus}
-            activeTab={activeTabPath.join("/")}
-            onTabSelect={setActiveTabPath}
-            onTabClose={handleTabClose}
-          />
-          <div className="flex-1 overflow-hidden">
-            <CodeEditor
-              content={content}
-              language={language}
-              onChange={handleContentChange}
-              onCursorChange={(line, col) => setCursorPos({ line, col })}
-              onSave={handleSave}
-            />
-          </div>
-          <Terminal
-            logs={logs}
-            isExpanded={terminalExpanded}
-            onToggle={() => setTerminalExpanded(!terminalExpanded)}
-            onClear={() => setLogs([])}
-          />
+        {/* Resizable Layout for Desktop Content */}
+        <div className="flex-1 flex overflow-hidden">
+          <ResizablePanelGroup direction="horizontal" autoSaveId="ide-main-layout">
+            
+            {showExplorer && (
+              <>
+                <ResizablePanel id="explorer" order={1} defaultSize={20} minSize={10} maxSize={40} className="hidden md:block">
+                  <div className="h-full w-full overflow-hidden border-r border-border bg-sidebar">
+                    <FileExplorer
+                      files={files}
+                      onFileSelect={handleFileSelect}
+                      activeFilePath={activeTabPath}
+                      onCreateFile={handleCreateFile}
+                      onCreateFolder={handleCreateFolder}
+                      onDeleteNode={handleDeleteNode}
+                      onRenameNode={handleRenameNode}
+                    />
+                  </div>
+                </ResizablePanel>
+                <ResizableHandle withHandle className="hidden md:flex" />
+              </>
+            )}
+
+            <ResizablePanel id="main-content" order={2} minSize={30} className="flex flex-col min-w-0">
+              <ResizablePanelGroup direction="vertical" autoSaveId="ide-editor-terminal">
+                
+                <ResizablePanel id="editor" order={1} defaultSize={75} minSize={30} className="flex flex-col min-w-0">
+                  <EditorTabs
+                    tabs={tabsWithStatus}
+                    activeTab={activeTabPath.join("/")}
+                    onTabSelect={setActiveTabPath}
+                    onTabClose={handleTabClose}
+                  />
+                  <div className="flex-1 overflow-hidden">
+                    <CodeEditor
+                      content={content}
+                      language={language}
+                      onChange={handleContentChange}
+                      onCursorChange={(line, col) => setCursorPos({ line, col })}
+                      onSave={handleSave}
+                    />
+                  </div>
+                </ResizablePanel>
+
+                {terminalExpanded ? (
+                  <>
+                    <ResizableHandle withHandle />
+                    <ResizablePanel id="terminal" order={2} defaultSize={25} minSize={10} className="flex flex-col min-w-0">
+                      <Terminal
+                        logs={logs}
+                        isExpanded={terminalExpanded}
+                        onToggle={() => setTerminalExpanded(!terminalExpanded)}
+                        onClear={() => setLogs([])}
+                      />
+                    </ResizablePanel>
+                  </>
+                ) : (
+                  <div className="shrink-0 flex flex-col min-w-0">
+                    <Terminal
+                      logs={logs}
+                      isExpanded={terminalExpanded}
+                      onToggle={() => setTerminalExpanded(!terminalExpanded)}
+                      onClear={() => setLogs([])}
+                    />
+                  </div>
+                )}
+
+              </ResizablePanelGroup>
+            </ResizablePanel>
+          </ResizablePanelGroup>
         </div>
 
         {/* Desktop contract panel */}
-        <div className="hidden md:flex">
+        <div className="hidden md:flex shrink-0 z-10">
           {showPanel && (
-            <div className="w-64 border-l border-border">
+            <div className="w-64 border-l border-border bg-card">
               <ContractPanel contractId={contractId} onInvoke={handleInvoke} />
             </div>
           )}
-          <div className="flex flex-col bg-card border-l border-border">
+          <div className="flex flex-col bg-card border-l border-border h-full">
             <button
               onClick={() => setShowPanel(!showPanel)}
               className="p-2 text-muted-foreground hover:text-foreground transition-colors"
