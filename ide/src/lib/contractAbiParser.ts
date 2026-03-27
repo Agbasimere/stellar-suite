@@ -19,6 +19,7 @@ export interface FunctionSpec {
   doc?: string;
   inputs: FunctionInputSpec[];
   outputs: FunctionOutputSpec[];
+  mutability?: 'readonly' | 'write';
 }
 
 export interface ParsedContractSchema {
@@ -116,7 +117,7 @@ const parseJsonFunctionSpecs = (rawValue: unknown): FunctionSpec[] => {
   if (!Array.isArray(root)) return [];
 
   return root
-    .map((entry) => {
+    .map((entry): FunctionSpec | null => {
       if (!entry || typeof entry !== "object") return null;
       const record = entry as Record<string, unknown>;
       const name =
@@ -169,9 +170,10 @@ const parseJsonFunctionSpecs = (rawValue: unknown): FunctionSpec[] => {
               : output
           ),
         })),
+        mutability: typeof record.readonly === "boolean" && record.readonly ? 'readonly' : 'write',
       } satisfies FunctionSpec;
     })
-    .filter((entry): entry is FunctionSpec => Boolean(entry));
+    .filter((entry): entry is FunctionSpec => entry !== null);
 };
 
 const describeSpecType = (typeDef: xdr.ScSpecTypeDef): string => {
@@ -247,6 +249,7 @@ const createFunctionSpecsFromContractSpec = (spec: contract.Spec): FunctionSpec[
     outputs: fn.outputs().map((output) => ({
       type: describeSpecType(output),
     })),
+    mutability: 'write', // TODO: detect from spec if possible
   }));
 
 const createPreview = (result: Omit<ParsedContractSchema, "preview">) =>
