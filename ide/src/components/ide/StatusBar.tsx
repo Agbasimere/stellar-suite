@@ -14,8 +14,10 @@ export function StatusBar({ language: propLanguage }: StatusBarProps) {
     network,
     horizonUrl,
     customRpcUrl,
+    customHeaders,
     setNetwork,
     setCustomRpcUrl,
+    setCustomHeaders,
     unsavedFiles,
     files,
     activeTabPath,
@@ -42,8 +44,10 @@ export function StatusBar({ language: propLanguage }: StatusBarProps) {
           network={network}
           horizonUrl={horizonUrl}
           customRpcUrl={customRpcUrl}
+          customHeaders={customHeaders}
           onNetworkChange={setNetwork}
           onCustomRpcUrlChange={setCustomRpcUrl}
+          onCustomHeadersChange={setCustomHeaders}
         />
         <button
           onClick={toggleMathSafety}
